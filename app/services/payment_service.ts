@@ -66,17 +66,20 @@ export default class PaymentService {
                 })
 
                 // Save transaction atomically using a db transaction
+                // tx.useTransaction(trx) sets this.$trx on the model —
+                // Lucid v3 passes $trx automatically to related() calls
                 const saved = await db.transaction(async (trx) => {
                     const tx = new Transaction()
+                    tx.useTransaction(trx)
                     tx.clientId = client.id
                     tx.gatewayId = gateway.id
                     tx.externalId = result.externalId
                     tx.status = 'PAID'
                     tx.amount = total
                     tx.cardLastNumbers = cardLastNumbers
-                    await tx.useTransaction(trx).save()
+                    await tx.save()
 
-                    // Attach products with pivot data (using transaction via useTransaction)
+                    // $trx is set on tx so related() uses the same transaction
                     const pivotData: Record<number, { quantity: number; unit_amount: number }> = {}
                     for (const item of dto.products) {
                         pivotData[item.id] = {
@@ -84,7 +87,7 @@ export default class PaymentService {
                             unit_amount: itemsMap.get(item.id)!.amount,
                         }
                     }
-                    await tx.related('products').useTransaction(trx).attach(pivotData)
+                    await tx.related('products').attach(pivotData)
 
                     return tx
                 })
