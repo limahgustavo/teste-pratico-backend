@@ -20,4 +20,4 @@ COPY --from=builder /app/package*.json ./
 
 EXPOSE 3333
 
-CMD ["node", "build/bin/server.js"]
+CMD ["sh", "-c", "node build/ace.js migration:run --force && node build/ace.js db:seed && node build/bin/server.js"]
