@@ -1,4 +1,4 @@
-FROM node:22-alpine
+FROM node:24-alpine AS builder
 
 WORKDIR /app
 
@@ -9,8 +9,15 @@ COPY . .
 
 RUN node ace build
 
-WORKDIR /app/build
+# ─── Production image ──────────────────────────────────────────────────────────
+FROM node:24-alpine AS production
+
+WORKDIR /app
+
+COPY --from=builder /app/build ./build
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/package*.json ./
 
 EXPOSE 3333
 
-CMD ["sh", "-c", "node ace migration:run --force && node ace db:seed && node bin/server.js"]
+CMD ["node", "build/bin/server.js"]

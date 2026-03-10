@@ -1,0 +1,21 @@
+FROM node:24-alpine
+
+WORKDIR /app
+
+COPY package*.json ./
+RUN npm install --legacy-peer-deps
+
+COPY . .
+
+# Wait for DB and gateways, then run migrations, seeds, and tests
+CMD ["sh", "-c", "\
+    echo '⏳ Aguardando banco de dados...' && \
+    until node ace migration:run --force 2>&1; do \
+    echo '🔄 DB ainda não disponível, tentando novamente em 3s...' && sleep 3; \
+    done && \
+    echo '✅ Migrations aplicadas!' && \
+    node ace db:seed && \
+    echo '✅ Seeds executados!' && \
+    echo '🧪 Rodando testes...' && \
+    node ace test \
+    "]
