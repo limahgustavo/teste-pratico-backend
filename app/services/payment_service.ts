@@ -65,21 +65,18 @@ export default class PaymentService {
                     cvv: dto.card.cvv,
                 })
 
-                // Save transaction atomically
-                const transaction = await db.transaction(async (trx: any) => {
-                    const tx = await Transaction.create(
-                        {
-                            clientId: client.id,
-                            gatewayId: gateway.id,
-                            externalId: result.externalId,
-                            status: 'PAID',
-                            amount: total,
-                            cardLastNumbers: cardLastNumbers,
-                        },
-                        { client: trx }
-                    )
+                // Save transaction atomically using a db transaction
+                const saved = await db.transaction(async (trx) => {
+                    const tx = new Transaction()
+                    tx.clientId = client.id
+                    tx.gatewayId = gateway.id
+                    tx.externalId = result.externalId
+                    tx.status = 'PAID'
+                    tx.amount = total
+                    tx.cardLastNumbers = cardLastNumbers
+                    await tx.useTransaction(trx).save()
 
-                    // Attach products with pivot data
+                    // Attach products with pivot data (using transaction via useTransaction)
                     const pivotData: Record<number, { quantity: number; unit_amount: number }> = {}
                     for (const item of dto.products) {
                         pivotData[item.id] = {
@@ -87,19 +84,20 @@ export default class PaymentService {
                             unit_amount: itemsMap.get(item.id)!.amount,
                         }
                     }
-                    await tx.related('products').attach(pivotData, trx)
+                    await tx.related('products').useTransaction(trx).attach(pivotData)
 
                     return tx
                 })
 
-                await transaction.load('client')
-                await transaction.load('gateway')
-                await transaction.load('products')
+                // Lazy load relations for the response
+                await saved.load('client')
+                await saved.load('gateway')
+                await saved.load('products')
 
-                return transaction
+                return saved
             } catch (error) {
                 lastError = error as Error
-                // Try next gateway
+                // Try next gateway (fallback)
             }
         }
 

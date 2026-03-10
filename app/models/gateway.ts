@@ -16,9 +16,21 @@ export default class Gateway extends BaseModel {
     @column()
     declare priority: number
 
+    /**
+     * mysql2 retorna colunas JSON já como objeto — não precisa de JSON.parse.
+     * Mas ao salvar, precisa serializar o objeto de volta para string.
+     */
     @column({
-        prepare: (value: object) => JSON.stringify(value),
-        consume: (value: string) => JSON.parse(value),
+        prepare: (value: unknown) => {
+            if (typeof value === 'string') return value
+            return JSON.stringify(value)
+        },
+        consume: (value: unknown) => {
+            if (typeof value === 'string') {
+                try { return JSON.parse(value) } catch { return value }
+            }
+            return value // mysql2 já retornou como objeto
+        },
     })
     declare credentials: Record<string, string>
 
