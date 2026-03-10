@@ -16,32 +16,40 @@ export default class PurchasesController {
 
         const paymentService = new PaymentService()
 
-        const transaction = await paymentService.purchase({
-            client: data.client,
-            products: data.products as PurchaseItem[],
-            card: data.card,
-        })
+        try {
+            const transaction = await paymentService.purchase({
+                client: data.client,
+                products: data.products as PurchaseItem[],
+                card: data.card,
+            })
 
-        return response.created({
-            data: {
-                transactionId: transaction.id,
-                status: transaction.status,
-                amount: transaction.amount,
-                gateway: transaction.gateway?.name,
-                cardLastNumbers: transaction.cardLastNumbers,
-                client: {
-                    id: transaction.client?.id,
-                    name: transaction.client?.name,
-                    email: transaction.client?.email,
+            return response.created({
+                data: {
+                    transactionId: transaction.id,
+                    status: transaction.status,
+                    amount: transaction.amount,
+                    gateway: transaction.gateway?.name,
+                    cardLastNumbers: transaction.cardLastNumbers,
+                    client: {
+                        id: transaction.client?.id,
+                        name: transaction.client?.name,
+                        email: transaction.client?.email,
+                    },
+                    products: transaction.products?.map((p) => ({
+                        id: p.id,
+                        name: p.name,
+                        quantity: (p.$extras as Record<string, unknown>)['pivot_quantity'],
+                        unitAmount: (p.$extras as Record<string, unknown>)['pivot_unit_amount'],
+                    })),
                 },
-                products: transaction.products?.map((p) => ({
-                    id: p.id,
-                    name: p.name,
-                    quantity: (p.$extras as Record<string, unknown>)['pivot_quantity'],
-                    unitAmount: (p.$extras as Record<string, unknown>)['pivot_unit_amount'],
-                })),
-            },
-            message: 'Purchase completed successfully',
-        })
+                message: 'Purchase completed successfully',
+            })
+        } catch (error: any) {
+            // Retorna detalhes do erro para debug (remover em produção)
+            return response.unprocessableEntity({
+                error: error?.message ?? 'Payment failed',
+                gatewayError: error?.cause?.message ?? error?.cause ?? null,
+            })
+        }
     }
 }
