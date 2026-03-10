@@ -20,4 +20,13 @@ COPY --from=builder /app/package*.json ./
 
 EXPOSE 3333
 
-CMD ["sh", "-c", "node build/ace.js migration:run --force && node build/ace.js db:seed && node build/bin/server.js"]
+CMD ["sh", "-c", "\
+    echo '⏳ Aguardando banco de dados...' && \
+    until node build/ace.js migration:run --force 2>&1; do \
+    echo '🔄 DB não disponível, tentando novamente em 3s...' && sleep 3; \
+    done && \
+    echo '✅ Migrations aplicadas!' && \
+    node build/ace.js db:seed && \
+    echo '✅ Seeds executados!' && \
+    node build/bin/server.js \
+    "]
