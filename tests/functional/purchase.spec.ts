@@ -23,11 +23,6 @@ test.group('Purchase (public route)', () => {
             card: { number: '5569000000006063', cvv: '010' },
         })
 
-        // Debug: mostra o body se não for 201
-        if (purchaseRes.response.status !== 201) {
-            console.error('PURCHASE ERROR BODY:', JSON.stringify(purchaseRes.body(), null, 2))
-        }
-
         purchaseRes.assertStatus(201)
         assert.equal(purchaseRes.body().data.status, 'PAID')
         assert.equal(purchaseRes.body().data.amount, 10000) // 5000 * 2 = 10000

@@ -24,7 +24,7 @@ test.group('Auth', () => {
     test('should return 422 with missing fields', async ({ client }) => {
         const response = await client.post('/api/v1/auth/login').json({
             email: 'admin@admin.com',
-        })
+        } as any)
 
         response.assertStatus(422)
     })
