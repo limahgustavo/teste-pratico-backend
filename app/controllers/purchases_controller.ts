@@ -1,6 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import PaymentService from '#services/payment_service'
 import { purchaseValidator } from '#validators/purchase_validator'
+import type { PurchaseItem } from '#dtos/purchase_dto'
 
 /**
  * PurchasesController - processa compras (rota pública)
@@ -17,7 +18,7 @@ export default class PurchasesController {
 
         const transaction = await paymentService.purchase({
             client: data.client,
-            products: data.products as Array<{ id: number; quantity: number }>,
+            products: data.products as PurchaseItem[],
             card: data.card,
         })
 
@@ -36,8 +37,8 @@ export default class PurchasesController {
                 products: transaction.products?.map((p) => ({
                     id: p.id,
                     name: p.name,
-                    quantity: (p.$extras as any).pivot_quantity,
-                    unitAmount: (p.$extras as any).pivot_unit_amount,
+                    quantity: (p.$extras as Record<string, unknown>)['pivot_quantity'],
+                    unitAmount: (p.$extras as Record<string, unknown>)['pivot_unit_amount'],
                 })),
             },
             message: 'Purchase completed successfully',

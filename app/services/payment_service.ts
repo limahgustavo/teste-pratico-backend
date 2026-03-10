@@ -4,9 +4,10 @@ import Transaction from '#models/transaction'
 import type { GatewayInterface } from '#services/gateways/gateway_interface'
 import Gateway1Service from '#services/gateways/gateway1_service'
 import Gateway2Service from '#services/gateways/gateway2_service'
-import type { PurchaseDTO } from '#dtos/purchase_dto'
+import type { PurchaseDTO, PurchaseItem } from '#dtos/purchase_dto'
 import PaymentFailedException from '#exceptions/payment_failed_exception'
-import { db } from '@adonisjs/lucid/services/db'
+import db from '@adonisjs/lucid/services/db'
+import Product from '#models/product'
 
 /**
  * PaymentService - SRP: responsabilidade única de orquestrar o pagamento
@@ -17,7 +18,7 @@ export default class PaymentService {
     private readonly gatewayMap: Map<string, GatewayInterface>
 
     constructor() {
-        this.gatewayMap = new Map([
+        this.gatewayMap = new Map<string, GatewayInterface>([
             ['Gateway1', new Gateway1Service()],
             ['Gateway2', new Gateway2Service()],
         ])
@@ -25,8 +26,7 @@ export default class PaymentService {
 
     async purchase(dto: PurchaseDTO) {
         // Fetch products and calculate total
-        const Product = (await import('#models/product')).default
-        const productIds = dto.products.map((p) => p.id)
+        const productIds = dto.products.map((p: PurchaseItem) => p.id)
         const products = await Product.query().whereIn('id', productIds).where('is_active', true)
 
         if (products.length !== productIds.length) {
@@ -34,7 +34,7 @@ export default class PaymentService {
         }
 
         const itemsMap = new Map(products.map((p) => [p.id, p]))
-        const total = dto.products.reduce((sum, item) => {
+        const total = dto.products.reduce((sum: number, item: PurchaseItem) => {
             const product = itemsMap.get(item.id)!
             return sum + product.amount * item.quantity
         }, 0)
@@ -65,8 +65,8 @@ export default class PaymentService {
                     cvv: dto.card.cvv,
                 })
 
-                // Save transaction inside a DB transaction for atomicity
-                const transaction = await db.transaction(async (trx) => {
+                // Save transaction atomically
+                const transaction = await db.transaction(async (trx: any) => {
                     const tx = await Transaction.create(
                         {
                             clientId: client.id,

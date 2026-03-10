@@ -15,10 +15,11 @@ export default class AuthController {
 
         const user = await User.verifyCredentials(email, password)
         const token = await auth.use('api').createToken(user)
+        const tokenValue = token.value!.release()
 
         return response.ok({
             data: {
-                token: token.value!.release(),
+                token: tokenValue,
                 user: {
                     id: user.id,
                     name: user.name,
@@ -35,8 +36,8 @@ export default class AuthController {
      * Rota privada - invalida o token atual
      */
     async logout({ auth, response }: HttpContext) {
-        const token = auth.user!.currentAccessToken
-        await User.accessTokens.delete(auth.user!, token.identifier)
+        const user = auth.user!
+        await User.accessTokens.delete(user, user.currentAccessToken!.identifier)
 
         return response.ok({ message: 'Logged out successfully' })
     }
