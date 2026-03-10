@@ -30,19 +30,21 @@ Sistema de pagamentos com suporte a múltiplos gateways, fallback automático, r
 
 ## 🚀 Como Rodar
 
-### Com Docker (recomendado)
+### Rodando tudo com Docker (recomendado)
 
+**Subir a aplicação completa:**
 ```bash
-# 1. Clone o repositório
-git clone https://github.com/limahgustavo/teste-pratico-backend.git
-cd teste-pratico-backend
-
-# 2. Suba os serviços (app + MySQL + gateways mock)
-docker compose up --build
-
-# Pronto! A API estará em http://localhost:3333
-# Migrations e seeds rodam automaticamente na inicialização
+docker compose --profile app up --build
 ```
+Sobe MySQL + Gateways mock + App em Node 24 (migrations e seeds automáticos)
+API disponível em: http://localhost:3333
+
+**Rodar os testes:**
+```bash
+docker compose --profile test up --build --attach test
+```
+Sobe MySQL + Gateways mock + Container de testes (migrations → seeds → `node ace test`)
+
 
 ### Localmente (sem Docker)
 
