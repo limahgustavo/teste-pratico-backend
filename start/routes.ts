@@ -103,3 +103,7 @@ router.group(() => {
     .use([middleware.auth(), middleware.role({ roles: ['ADMIN'] })])
 
 }).prefix('/api/v1')
+
+// ─── Documentação Swagger ─────────────────────────────────────────────────────
+router.get('/docs', '#controllers/docs_controller.ui').as('docs.ui')
+router.get('/docs/json', '#controllers/docs_controller.json').as('docs.json')
