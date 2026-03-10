@@ -1,0 +1,58 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3333:3333"
+    environment:
+      - NODE_ENV=production
+      - PORT=3333
+      - HOST=0.0.0.0
+      - LOG_LEVEL=info
+      - APP_KEY=${APP_KEY}
+      - APP_URL=http://localhost:3333
+      - SESSION_DRIVER=cookie
+      - DB_HOST=db
+      - DB_PORT=3306
+      - DB_USER=root
+      - DB_PASSWORD=${DB_PASSWORD:-root}
+      - DB_DATABASE=payment_api
+      - GATEWAY1_URL=http://gateways:3001
+      - GATEWAY1_EMAIL=dev@betalent.tech
+      - GATEWAY1_TOKEN=FEC9BB078BF338F464F96B48089EB498
+      - GATEWAY2_URL=http://gateways:3002
+      - GATEWAY2_AUTH_TOKEN=tk_f2198cc671b5289fa856
+      - GATEWAY2_AUTH_SECRET=3d15e8ed6131446ea7e3456728b1211f
+    depends_on:
+      db:
+        condition: service_healthy
+      gateways:
+        condition: service_started
+    restart: unless-stopped
+
+  db:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-root}
+      MYSQL_DATABASE: payment_api
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_PASSWORD:-root}"]
+      interval: 5s
+      timeout: 10s
+      retries: 10
+    restart: unless-stopped
+
+  gateways:
+    image: matheusprotzen/gateways-mock
+    ports:
+      - "3001:3001"
+      - "3002:3002"
+    restart: unless-stopped
+
+volumes:
+  mysql_data:
